@@ -1,0 +1,17 @@
+{
+  "trello_api_key": {
+    "description": "Trello API key.",
+    "type": "string",
+    "hint": "Create from Trello Power-Ups / API key page."
+  },
+  "trello_token": {
+    "description": "Trello API token.",
+    "type": "string",
+    "hint": "Generate a token that can access your boards."
+  },
+  "request_timeout_sec": {
+    "description": "HTTP timeout in seconds.",
+    "type": "int",
+    "default": 20
+  }
+}
