@@ -1,3 +1,5 @@
+import re
+
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 
@@ -8,7 +10,7 @@ from .client import TrelloApiError, TrelloAuthError, TrelloClient
     "astrbot_plugin_trello_control",
     "Potatoworkshop",
     "Control Trello boards and cards with AstrBot commands.",
-    "0.1.0",
+    "0.1.1",
 )
 class TrelloPlugin(Star):
     def __init__(self, context: Context, config: dict | None = None):
@@ -26,19 +28,20 @@ class TrelloPlugin(Star):
 
     def _tail(self, event: AstrMessageEvent, command: str) -> str:
         text = event.message_str.strip()
-        prefix = f"trello {command}"
-        if text.startswith(prefix):
-            return text[len(prefix) :].strip()
-        slash_prefix = f"/{prefix}"
-        if text.startswith(slash_prefix):
-            return text[len(slash_prefix) :].strip()
-        return ""
+        pattern = rf"^[^\w]*trello\s+{re.escape(command)}\b\s*(.*)$"
+        match = re.match(pattern, text, flags=re.IGNORECASE)
+        if not match:
+            return ""
+        return match.group(1).strip()
 
     def _split_pipe(self, value: str) -> tuple[str, str]:
         if "|" not in value:
             return value.strip(), ""
         left, right = value.split("|", 1)
         return left.strip(), right.strip()
+
+    def _tail_pipe(self, event: AstrMessageEvent, command: str) -> tuple[str, str]:
+        return self._split_pipe(self._tail(event, command))
 
     async def _get_credentials(self) -> tuple[str, str]:
         api_key = str(self.config.get("trello_api_key", "") or "")
@@ -156,13 +159,12 @@ class TrelloPlugin(Star):
             )
             return
 
-        content = self._tail(event, "board-create")
-        if not content:
+        name, desc = self._tail_pipe(event, "board-create")
+        if not name and not desc:
             yield event.plain_result(
                 "Usage: /trello board-create <name> | <description>"
             )
             return
-        name, desc = self._split_pipe(content)
         if not name:
             yield event.plain_result("Board name is required.")
             return
@@ -360,8 +362,7 @@ class TrelloPlugin(Star):
             )
             return
 
-        content = self._tail(event, "list-rename")
-        list_id, new_name = self._split_pipe(content)
+        list_id, new_name = self._tail_pipe(event, "list-rename")
         if not list_id or not new_name:
             yield event.plain_result(
                 "Usage: /trello list-rename <list_id> | <new_name>"
@@ -483,12 +484,11 @@ class TrelloPlugin(Star):
             )
             return
 
-        content = self._tail(event, "add")
-        if not content:
+        title, desc = self._tail_pipe(event, "add")
+        if not title and not desc:
             yield event.plain_result("Usage: /trello add <title> | <description>")
             return
 
-        title, desc = self._split_pipe(content)
         if not title:
             yield event.plain_result("Card title is required.")
             return
@@ -705,8 +705,7 @@ class TrelloPlugin(Star):
             )
             return
 
-        content = self._tail(event, "comment")
-        card_id, text = self._split_pipe(content)
+        card_id, text = self._tail_pipe(event, "comment")
         if not card_id or not text:
             yield event.plain_result("Usage: /trello comment <card_id> | <text>")
             return
@@ -867,8 +866,7 @@ class TrelloPlugin(Star):
             )
             return
 
-        content = self._tail(event, "checklist-create")
-        card_id, checklist_name = self._split_pipe(content)
+        card_id, checklist_name = self._tail_pipe(event, "checklist-create")
         if not card_id or not checklist_name:
             yield event.plain_result(
                 "Usage: /trello checklist-create <card_id> | <name>"
@@ -903,8 +901,7 @@ class TrelloPlugin(Star):
             )
             return
 
-        content = self._tail(event, "checklist-add")
-        checklist_id, item_name = self._split_pipe(content)
+        checklist_id, item_name = self._tail_pipe(event, "checklist-add")
         if not checklist_id or not item_name:
             yield event.plain_result(
                 "Usage: /trello checklist-add <checklist_id> | <item_name>"
