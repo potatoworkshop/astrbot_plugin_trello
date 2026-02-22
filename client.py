@@ -190,6 +190,22 @@ class TrelloClient:
             params={"name": name, "desc": description},
         )
 
+    async def update_board(
+        self,
+        *,
+        api_key: str,
+        token: str,
+        board_id: str,
+        params: dict[str, Any],
+    ) -> dict[str, Any]:
+        return await self._request(
+            "PUT",
+            f"/boards/{board_id}",
+            api_key=api_key,
+            token=token,
+            params=params,
+        )
+
     async def get_board(
         self,
         *,
@@ -234,6 +250,21 @@ class TrelloClient:
             api_key=api_key,
             token=token,
             params={"idBoard": board_id, "name": name, "pos": "bottom"},
+        )
+
+    async def get_list(
+        self,
+        *,
+        api_key: str,
+        token: str,
+        list_id: str,
+    ) -> dict[str, Any]:
+        return await self._request(
+            "GET",
+            f"/lists/{list_id}",
+            api_key=api_key,
+            token=token,
+            params={"fields": "id,name,closed,idBoard,pos"},
         )
 
     async def rename_list(
@@ -372,12 +403,13 @@ class TrelloClient:
         token: str,
         card_id: str,
     ) -> list[dict[str, Any]]:
-        return await self._request(
+        data = await self._request(
             "GET",
             f"/cards/{card_id}/checklists",
             api_key=api_key,
             token=token,
         )
+        return self._ensure_list_of_dict(data, f"/cards/{card_id}/checklists")
 
     async def create_checklist(
         self,
@@ -407,6 +439,36 @@ class TrelloClient:
             f"/checklists/{checklist_id}",
             api_key=api_key,
             token=token,
+        )
+
+    async def get_checklist(
+        self,
+        *,
+        api_key: str,
+        token: str,
+        checklist_id: str,
+    ) -> dict[str, Any]:
+        return await self._request(
+            "GET",
+            f"/checklists/{checklist_id}",
+            api_key=api_key,
+            token=token,
+        )
+
+    async def update_checklist(
+        self,
+        *,
+        api_key: str,
+        token: str,
+        checklist_id: str,
+        params: dict[str, Any],
+    ) -> dict[str, Any]:
+        return await self._request(
+            "PUT",
+            f"/checklists/{checklist_id}",
+            api_key=api_key,
+            token=token,
+            params=params,
         )
 
     async def add_check_item(
@@ -440,4 +502,36 @@ class TrelloClient:
             api_key=api_key,
             token=token,
             params={"state": "complete" if checked else "incomplete"},
+        )
+
+    async def update_check_item(
+        self,
+        *,
+        api_key: str,
+        token: str,
+        card_id: str,
+        check_item_id: str,
+        params: dict[str, Any],
+    ) -> dict[str, Any]:
+        return await self._request(
+            "PUT",
+            f"/cards/{card_id}/checkItem/{check_item_id}",
+            api_key=api_key,
+            token=token,
+            params=params,
+        )
+
+    async def delete_check_item(
+        self,
+        *,
+        api_key: str,
+        token: str,
+        checklist_id: str,
+        check_item_id: str,
+    ) -> dict[str, Any]:
+        return await self._request(
+            "DELETE",
+            f"/checklists/{checklist_id}/checkItems/{check_item_id}",
+            api_key=api_key,
+            token=token,
         )
